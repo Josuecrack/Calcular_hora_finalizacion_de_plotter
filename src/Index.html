@@ -1,0 +1,362 @@
+
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Control de Plotter</title>
+
+<style>
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #101827;
+  color: white;
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px;
+}
+
+.container {
+  width: 100%;
+  max-width: 460px;
+  background: #1e293b;
+  padding: 28px;
+  border-radius: 20px;
+  box-shadow: 0 15px 40px #0005;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  text-align: center;
+  color: #94a3b8;
+  margin-bottom: 25px;
+}
+
+.speed-box {
+  background: #064e3b;
+  padding: 16px;
+  border-radius: 12px;
+  margin-bottom: 22px;
+}
+
+.speed-box label {
+  color: #a7f3d0;
+  margin-top: 0;
+}
+
+.speed-box input {
+  background: #022c22;
+  border-color: #047857;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+label {
+  display: block;
+  margin: 17px 0 8px;
+  color: #cbd5e1;
+}
+
+input {
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  border: 1px solid #475569;
+  background: #0f172a;
+  color: white;
+  font-size: 18px;
+  outline: none;
+}
+
+input:focus {
+  border-color: #10b981;
+}
+
+.results {
+  margin-top: 25px;
+  background: #0f172a;
+  border-radius: 14px;
+  padding: 20px;
+}
+
+.caption {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.time {
+  color: #34d399;
+  font-size: 29px;
+  font-weight: bold;
+  margin: 12px 0;
+}
+
+.remaining {
+  font-size: 17px;
+  margin-bottom: 18px;
+}
+
+.bar {
+  height: 12px;
+  background: #334155;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.progress {
+  height: 100%;
+  width: 0%;
+  background: #10b981;
+  transition: width .3s;
+}
+
+.percent {
+  text-align: right;
+  color: #34d399;
+  margin-top: 8px;
+}
+
+.finish {
+  margin-top: 20px;
+  padding: 18px 12px;
+  border-radius: 12px;
+  background: #064e3b;
+  text-align: center;
+  line-height: 1.6;
+}
+
+.finish-label {
+  color: #a7f3d0;
+  font-size: 13px;
+}
+
+.finish-time {
+  color: white;
+  font-size: 29px;
+  font-weight: bold;
+  margin-top: 5px;
+}
+
+.finish-date {
+  color: #a7f3d0;
+  font-size: 14px;
+}
+
+.error {
+  color: #fca5a5;
+  font-size: 13px;
+  margin-top: 12px;
+}
+
+button {
+  width: 100%;
+  padding: 13px;
+  margin-top: 18px;
+  border: none;
+  border-radius: 10px;
+  background: #334155;
+  color: white;
+  font-size: 15px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #475569;
+}
+
+.footer {
+  text-align: center;
+  color: #64748b;
+  font-size: 12px;
+  margin-top: 20px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+  <h1>🖨️ Control de Plotter</h1>
+  <p class="subtitle">Calculadora de tiempo de impresión</p>
+
+  <div class="speed-box">
+    <label>⚡ Velocidad de impresión (metros/hora)</label>
+    <input
+      type="number"
+      id="speed"
+      value="8.7"
+      min="0.01"
+      step="0.1"
+      placeholder="Ej: 8.7">
+  </div>
+
+  <label>Metros totales del trabajo</label>
+  <input
+    type="number"
+    id="total"
+    placeholder="Ej: 50"
+    min="0"
+    step="0.01">
+
+  <label>Metros que marca actualmente el plotter</label>
+  <input
+    type="number"
+    id="actual"
+    placeholder="Ej: 17.4"
+    min="0"
+    step="0.01">
+
+  <div id="error" class="error"></div>
+
+  <div class="results">
+
+    <div class="caption">TIEMPO RESTANTE</div>
+    <div class="time" id="time">--</div>
+
+    <div class="remaining">
+      <span id="remaining">0.00</span> metros restantes
+    </div>
+
+    <div class="bar">
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <div class="percent" id="percent">0%</div>
+
+    <div class="finish">
+      <div class="finish-label">
+        HORA ESTIMADA DE FINALIZACIÓN
+      </div>
+
+      <div class="finish-time" id="finish">
+        --:--
+      </div>
+
+      <div class="finish-date" id="finishDate">
+        Ingresa los datos para calcular
+      </div>
+    </div>
+
+  </div>
+
+  <button onclick="resetCalculator()">
+    Limpiar metros
+  </button>
+
+  <div class="footer">
+    Calculadora de producción · Control de impresión
+  </div>
+
+</div>
+
+<script>
+
+const speed = document.getElementById("speed");
+const total = document.getElementById("total");
+const actual = document.getElementById("actual");
+
+function calculate() {
+
+  const velocidad = Number(speed.value);
+  const t = Number(total.value);
+  const a = Number(actual.value);
+
+  const error = document.getElementById("error");
+
+  if (
+    speed.value === "" ||
+    total.value === "" ||
+    actual.value === "" ||
+    !Number.isFinite(velocidad) ||
+    !Number.isFinite(t) ||
+    !Number.isFinite(a) ||
+    velocidad <= 0 ||
+    t <= 0 ||
+    a < 0 ||
+    a > t
+  ) {
+
+    error.textContent =
+      "Verifica los datos: velocidad mayor que cero y metros impresos entre cero y el total.";
+
+    document.getElementById("time").textContent = "--";
+    document.getElementById("remaining").textContent = "0.00";
+    document.getElementById("progress").style.width = "0%";
+    document.getElementById("percent").textContent = "0%";
+    document.getElementById("finish").textContent = "--:--";
+    document.getElementById("finishDate").textContent =
+      "Ingresa datos válidos para calcular";
+
+    return;
+  }
+
+  error.textContent = "";
+
+  const faltan = t - a;
+  const horas = faltan / velocidad;
+
+  const h = Math.floor(horas);
+  const m = Math.round((horas - h) * 60);
+
+  document.getElementById("time").textContent =
+    `${h} horas ${m} minutos`;
+
+  document.getElementById("remaining").textContent =
+    faltan.toFixed(2);
+
+  const porcentaje = (a / t) * 100;
+
+  document.getElementById("progress").style.width =
+    porcentaje + "%";
+
+  document.getElementById("percent").textContent =
+    porcentaje.toFixed(1) + "%";
+
+  // Calcular hora de finalización
+  const finalizacion = new Date(
+    Date.now() + horas * 60 * 60 * 1000
+  );
+
+  document.getElementById("finish").textContent =
+    finalizacion.toLocaleTimeString("es-EC", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true
+    });
+
+  document.getElementById("finishDate").textContent =
+    finalizacion.toLocaleDateString("es-EC", {
+      weekday: "long",
+      day: "2-digit",
+      month: "long",
+      year: "numeric"
+    });
+
+}
+
+// Actualizar cálculos al cambiar cualquier dato
+speed.addEventListener("input", calculate);
+total.addEventListener("input", calculate);
+actual.addEventListener("input", calculate);
+
+// Limpiar metros sin modificar la velocidad
+function resetCalculator() {
+  total.value = "";
+  actual.value = "";
+  calculate();
+}
+
+</script>
+
+</body>
+</html>
